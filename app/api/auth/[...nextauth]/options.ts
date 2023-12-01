@@ -1,10 +1,8 @@
 import Github from "next-auth/providers/github";
-import { GithubProfile } from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
-import { Awaitable } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import User from "@/app/(models)/User";
-import bcrypt from 'bcrypt';
+// import User from "@/app/(models)/User";
+// import bcrypt from 'bcrypt';
 
 interface TokenSetParameters {
     access_token: string;
@@ -16,7 +14,6 @@ interface User {
     name: string;
     email: string;
     role: string;
-    // Other relevant properties...
   }
 
 export const options = {
@@ -72,22 +69,41 @@ export const options = {
                 }
             },
             async authorize(credentials: any, req) {
-                try{
-                    const foundUser:any = await User.findOne({email: credentials?.email}).lean().exec();
-                    if(foundUser){
-                        console.log('User Exists');
+
+                console.log("Credentials", credentials);
+                // try{
+                //     const foundUser:any = await User.findOne({email: credentials?.email}).lean().exec();
+                //     if(foundUser){
+                //         console.log('User Exists');
                         
-                        const match = await bcrypt.compare(credentials?.password, foundUser?.password);
-                        if(match){
-                            console.log("Good Pass");
-                            delete foundUser?.password;
-                            foundUser['role'] = 'Unverified email';
-                            return foundUser;
-                        }
-                    }
-                }catch(err){
-                    console.log(err)
+                //         const match = await bcrypt.compare(credentials?.password, foundUser?.password);
+                //         if(match){
+                //             console.log("Good Pass");
+                //             delete foundUser?.password;
+                //             foundUser['role'] = 'Unverified email';
+                //             return foundUser;
+                //         }
+                //     }
+                // }catch(err){
+                //     console.log(err)
+                // }
+                // return null;
+                const res = await fetch("http://localhost:5000/login", {
+                    method: "POST",
+                    headers:{
+                        "Content-Type": "application/json"
+                    },
+                    body:JSON.stringify({
+                        username: credentials.username,
+                        password: credentials.password
+                    }),
+                })
+
+                const user = await res.json();
+                if(user){
+                    return user;
                 }
+
                 return null;
             },
         }),
@@ -101,5 +117,8 @@ export const options = {
             if(session?.user) session.user.role = token.role
             return session;
         }
+    },
+    pages:{
+        signIn:'/login'
     }
 }
